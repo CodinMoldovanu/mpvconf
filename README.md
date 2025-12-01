@@ -1,6 +1,5 @@
 ## MPV Config Studio
-
-Lightweight, build-free web app for crafting `mpv.conf` with sensible presets and instant preview.
+![Vibecoded](https://img.shields.io/badge/vibecoded-%234ad5c2?style=for-the-badge&logo=waveform&logoColor=0f1623)
 
 ### Usage
 
