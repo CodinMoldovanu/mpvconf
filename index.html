@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MPV Config Studio</title>
+  <style>
+    :root {
+      --bg: #0f1623;
+      --panel: #131c2c;
+      --panel-2: #172236;
+      --text: #eaf2ff;
+      --muted: #aeb8ce;
+      --accent: #4ad5c2;
+      --accent-2: #f9b572;
+      --border: #22324c;
+      --shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+      --radius: 12px;
+      --font: "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(120% 120% at 10% 20%, rgba(74,213,194,0.07), transparent 40%), radial-gradient(120% 120% at 90% 0%, rgba(249,181,114,0.08), transparent 35%), var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+    header {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 22px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    h1 {
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-size: clamp(28px, 3vw, 34px);
+    }
+    .subtitle { color: var(--muted); margin-top: 6px; }
+    .pill {
+      background: rgba(74,213,194,0.12);
+      color: var(--accent);
+      padding: 8px 12px;
+      border-radius: 99px;
+      font-weight: 600;
+      font-size: 13px;
+      border: 1px solid rgba(74,213,194,0.35);
+    }
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 22px 48px;
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(340px, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: linear-gradient(160deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+    .card .hint { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    .section-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .field:hover { border-color: rgba(74,213,194,0.45); transform: translateY(-1px); }
+    label { font-weight: 600; font-size: 14px; }
+    .subtext { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    select, input[type="text"], input[type="number"], textarea {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: var(--font);
+    }
+    select:focus, input:focus, textarea:focus { outline: 1px solid var(--accent); }
+    textarea { width: 100%; min-height: 340px; resize: vertical; }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: var(--accent);
+      color: #0c141f;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(74,213,194,0.35); }
+    .ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .secondary { background: var(--accent-2); color: #1e1407; }
+    .inline {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: rgba(255,255,255,0.05);
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .generated-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .custom-kv { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; }
+    .chip {
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .stack { display: flex; flex-direction: column; gap: 8px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-2); text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="pill">MPV Config Studio</div>
+      <h1>Assemble a beautiful, sensible <span style="color: var(--accent-2);">mpv.conf</span></h1>
+      <div class="subtitle">Start with sane defaults, tweak details, and export a ready-to-drop config.</div>
+    </div>
+    <div class="badge">Offline-first · No build tools</div>
+  </header>
+
+  <main>
+    <section class="card" id="controls">
+      <h2>Controls</h2>
+      <div class="hint">Everything updates the preview instantly. Values mirror mpv option names.</div>
+      <div class="section-grid" id="sections"></div>
+      <div class="card" style="margin-top: 12px;">
+        <h2>Custom entries</h2>
+        <div class="hint">Add any extra mpv option lines you want included.</div>
+        <div class="stack" id="custom-rows"></div>
+        <div class="actions">
+          <button type="button" onclick="addCustomRow()">Add custom line</button>
+          <button type="button" class="ghost" onclick="resetCustom()">Clear custom</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="generated-title">
+        <div>
+          <h2>Generated mpv.conf</h2>
+          <div class="hint">Ready to drop into `~/.config/mpv/mpv.conf`. Comments explain tweaks.</div>
+        </div>
+        <div class="inline">
+          <button class="ghost" type="button" onclick="copyConfig()">Copy</button>
+          <button class="secondary" type="button" onclick="downloadConfig()">Download</button>
+        </div>
+      </div>
+      <textarea id="output" readonly></textarea>
+      <div class="actions">
+        <button type="button" onclick="loadSaneDefaults()">Load sane defaults</button>
+        <button type="button" class="ghost" onclick="loadVanilla()">Reset to vanilla</button>
+      </div>
+      <div class="inline" style="margin-top:10px;">
+        <div class="badge">hardware decoding? hwdec options: auto-safe, vaapi, d3d11va, videotoolbox, nvdec, none</div>
+        <div class="badge">docs: https://mpv.io/manual/stable/ (quick references baked in)</div>
+      </div>
+    </section>
+
+    <section class="card" style="grid-column: span 2;">
+      <h2>Expand mpv with community scripts</h2>
+      <div class="hint">Scripts add new UI, automation, and integrations. Grab curated picks from awesome-mpv.</div>
+      <div class="stack">
+        <div class="field">
+          <label>Where to browse</label>
+          <div class="subtext">
+            Curated list: <a href="https://github.com/stax76/awesome-mpv" target="_blank" rel="noreferrer">stax76/awesome-mpv</a>.
+            Popular picks include playlist managers, sponsorblock, thumbnail previewers, and auto-cache tuners.
+          </div>
+        </div>
+        <div class="field">
+          <label>What scripts can do</label>
+          <div class="subtext">
+            - Enhance controls (better OSC, chapter/playlist navigation, thumbnails)<br>
+            - Integrate services (YouTube SponsorBlock, trakt scrobbling, anilist)<br>
+            - Automate playback (auto-sub download, next-episode, history/resume)<br>
+            - Optimize quality (smart cache defaults, tone-mapping helpers, shader loaders)
+          </div>
+        </div>
+        <div class="field">
+          <label>How to install</label>
+          <div class="subtext">
+            1) Create `~/.config/mpv/scripts/` and drop `.lua` or `.js` files there.<br>
+            2) If a script ships with `script-opts`, place its `.conf` in `~/.config/mpv/script-opts/` (matching name).<br>
+            3) Restart mpv. Use `--script-opts=script-name-flag=value` inline for quick overrides.<br>
+            4) Keep configs in version control: back up `scripts/` and `script-opts/` alongside your `mpv.conf`.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="card" style="max-width:1200px; margin: 0 auto 32px; padding:16px 18px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px;">
+    <div>
+      <div class="pill" style="background: rgba(249,181,114,0.12); border-color: rgba(249,181,114,0.45); color: var(--accent-2);">Looking for reliability help?</div>
+      <div class="subtitle" style="margin-top:8px;">Vibecoded by <a href="https://pfa.codin.ro" target="_blank" rel="noreferrer">Codin Moldovanu</a> — SRE/infra partner for dependable platforms.</div>
+    </div>
+    <div class="inline" style="align-items:center;">
+      <div class="badge">Infra · Observability · Resilience</div>
+      <a href="https://pfa.codin.ro" target="_blank" rel="noreferrer"><button type="button" class="secondary">Schedule a chat</button></a>
+    </div>
+  </section>
+
+  <script>
+    const optionSections = [
+      {
+        id: "playback",
+        title: "Playback & Sync",
+        fields: [
+          selectField("profile", "Profile", [
+            opt("default", "default (mpv stock)"),
+            opt("gpu-hq", "gpu-hq (better scaling)"),
+            opt("sw-fast", "sw-fast (software bias)")
+          ], "gpu-hq", "Base mpv profile for quality/perf."),
+          selectField("hwdec", "Hardware decoding", [
+            opt("auto-safe", "auto-safe"),
+            opt("yes", "auto (may use unsafe)"),
+            opt("vaapi", "vaapi (Linux)"),
+            opt("videotoolbox", "videotoolbox (macOS)"),
+            opt("d3d11va", "d3d11va (Windows)"),
+            opt("nvdec", "nvdec (NVIDIA)"),
+            opt("no", "disabled")
+          ], "auto-safe", "Prefer GPU decode, fallback to CPU."),
+          selectField("interpolation", "Motion interpolation", [
+            opt("no", "off"),
+            opt("yes", "on (with blend)"),
+            opt("tscale=oversample", "on + oversample tscale")
+          ], "no", "Blend frames to reduce judder."),
+          selectField("video-sync", "Video/audio sync", [
+            opt("audio", "audio (mpv default)"),
+            opt("display-resample", "display-resample (smooth)"),
+            opt("display-vdrop", "display-vdrop (drop on drift)")
+          ], "audio", "How mpv syncs playback clock.")
+        ]
+      },
+      {
+        id: "video",
+        title: "Video & Scaling",
+        fields: [
+          selectField("vo", "Video output", [
+            opt("auto", "auto (choose)"),
+            opt("gpu-next", "gpu-next"),
+            opt("gpu", "gpu"),
+            opt("libmpv", "libmpv"),
+            opt("null", "null (headless)")
+          ], "gpu-next", "Renderer backend."),
+          selectField("gpu-api", "GPU API", [
+            opt("auto", "auto"),
+            opt("vulkan", "vulkan"),
+            opt("opengl", "opengl"),
+            opt("metal", "metal (mac)"),
+            opt("d3d11", "d3d11")
+          ], "auto", "Force a graphics API."),
+          selectField("scale", "Luma scale", [
+            opt("ewa_lanczossharp", "ewa_lanczossharp"),
+            opt("ewa_hanning", "ewa_hanning"),
+            opt("bicubic", "bicubic"),
+            opt("spline36", "spline36"),
+            opt("bilinear", "bilinear")
+          ], "ewa_lanczossharp", "Upscaling kernel."),
+          selectField("dscale", "Downscale", [
+            opt("mitchell", "mitchell"),
+            opt("catmull_rom", "catmull_rom"),
+            opt("lanczos", "lanczos"),
+            opt("spline36", "spline36")
+          ], "mitchell", "Downscaling kernel."),
+          selectField("sigmoid-upscaling", "Sigmoid upscaling", [
+            opt("yes", "enabled"),
+            opt("no", "disabled")
+          ], "yes", "Reduce ringing when upscaling."),
+          selectField("deband", "Debanding", [
+            opt("auto", "auto"),
+            opt("yes", "force on"),
+            opt("no", "off")
+          ], "auto", "Remove banding artifacts."),
+          selectField("tone-mapping", "HDR tone mapping", [
+            opt("auto", "auto (mpv default)"),
+            opt("hable", "hable"),
+            opt("mobius", "mobius"),
+            opt("reinhard", "reinhard"),
+            opt("clip", "clip"),
+            opt("bt.2446a", "bt.2446a"),
+            opt("linear", "linear")
+          ], "auto", "Curve for HDR to SDR or display tone mapping."),
+          inputField("target-peak", "Target peak (nits)", "", "For HDR tone mapping; 0 = use content or display metadata.", "e.g. 100", "number")
+        ]
+      },
+      {
+        id: "audio",
+        title: "Audio",
+        fields: [
+          selectField("audio-device", "Audio device", [
+            opt("auto", "auto"),
+            opt("lavrate", "lavrate"),
+            opt("alsa/default", "alsa default"),
+            opt("pulse/auto", "pulse auto"),
+            opt("coreaudio", "coreaudio default")
+          ], "auto", "Select output device."),
+          selectField("volume", "Start volume", [
+            opt("100", "100%"),
+            opt("75", "75%"),
+            opt("50", "50%")
+          ], "100", "Initial volume."),
+          inputField("volume-max", "Volume max", "130", "Softvol max (allows +dB headroom).", "e.g. 130", "number"),
+          selectField("audio-channels", "Channels", [
+            opt("auto", "auto"),
+            opt("stereo", "stereo"),
+            opt("5.1", "5.1"),
+            opt("7.1", "7.1")
+          ], "auto", "Channel layout."),
+          selectField("audio-file-auto", "External audio", [
+            opt("fuzzy", "fuzzy (sane)"),
+            opt("no", "disabled"),
+            opt("exact", "exact match")
+          ], "fuzzy", "Pick sidecar audio tracks."),
+          selectField("af", "Audio filters", [
+            opt("", "none"),
+            opt("lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]", "loudnorm"),
+            opt("lavfi=[acompressor]", "compressor")
+          ], "", "Optional filter pipeline."),
+          inputField("audio-delay", "Audio delay (sec)", "0", "Positive delays audio; negative advances.", "e.g. -0.05", "text")
+        ]
+      },
+      {
+        id: "subtitles",
+        title: "Subtitles",
+        fields: [
+          selectField("sub-auto", "Auto-load subs", [
+            opt("fuzzy", "fuzzy (sane)"),
+            opt("exact", "exact"),
+            opt("all", "all"),
+            opt("no", "disabled")
+          ], "fuzzy", "Matching rule for external subs."),
+          selectField("sub-font-size", "Font size", [
+            opt("44", "44"),
+            opt("40", "40"),
+            opt("36", "36"),
+            opt("32", "32"),
+            opt("28", "28")
+          ], "36", "Scaled to video."),
+          inputField("sub-margin", "Bottom margin (px)", "10", "Offset from bottom edge.", "e.g. 20", "number"),
+          selectField("sub-color", "Text color", [
+            opt("#ffffff", "white"),
+            opt("#f9b572", "amber"),
+            opt("#4ad5c2", "mint"),
+            opt("#d16ba5", "magenta"),
+            opt("#a0b0ff", "cool blue")
+          ], "#ffffff", "Hex color."),
+          selectField("sub-border-color", "Border color", [
+            opt("#101010", "black"),
+            opt("#000000", "pure black"),
+            opt("#333333", "dark gray")
+          ], "#101010", "Outline tint."),
+          inputField("sub-shadow-offset", "Shadow offset", "1", "Drop shadow distance in px.", "e.g. 1", "number"),
+          selectField("sub-bold", "Bold text", [
+            opt("yes", "yes"),
+            opt("no", "no")
+          ], "no", "Force bold.")
+        ]
+      },
+      {
+        id: "ui",
+        title: "UI & OSD",
+        fields: [
+          selectField("osc", "On-screen controller", [
+            opt("yes", "yes"),
+            opt("no", "no")
+          ], "yes", "mpv's built-in overlay."),
+          selectField("osd-level", "OSD level", [
+            opt("1", "1: seek + pause"),
+            opt("2", "2: status"),
+            opt("3", "3: detailed")
+          ], "2", "Info overlay verbosity."),
+          inputField("osd-font-size", "OSD font size", "36", "Font size for OSD.", "e.g. 36", "number"),
+          inputField("osd-duration", "OSD duration (ms)", "1200", "How long OSD stays visible.", "e.g. 1200", "number"),
+          selectField("term-osd-bar", "Terminal seek bar", [
+            opt("no", "disabled"),
+            opt("yes", "enabled")
+          ], "no", "Draws a bar in terminal."),
+          inputField("cursor-autohide", "Cursor autohide (ms)", "1000", "Hide mouse after idle.", "1000", "number")
+        ]
+      },
+      {
+        id: "behavior",
+        title: "Behavior",
+        fields: [
+          selectField("save-position-on-quit", "Resume position", [
+            opt("yes", "yes"),
+            opt("no", "no")
+          ], "yes", "Persist playback progress."),
+          selectField("loop-file", "Loop file", [
+            opt("no", "no"),
+            opt("inf", "infinite"),
+            opt("2", "twice")
+          ], "no", "Repeat behavior.")
+        ]
+      },
+      {
+        id: "window",
+        title: "Window & sizing",
+        fields: [
+          inputField("autofit", "Autofit window", "", "Max window size (e.g. 70% or 1280x720). Empty = mpv default.", "e.g. 70% or 1280x720"),
+          inputField("autofit-larger", "Autofit larger", "", "Only shrink oversized windows.", "e.g. 90%x90%"),
+          selectField("fs", "Start fullscreen", [
+            opt("no", "no"),
+            opt("yes", "yes")
+          ], "no", "Launch in fullscreen."),
+          selectField("keep-open", "Keep window open", [
+            opt("no", "no"),
+            opt("yes", "yes")
+          ], "no", "Show last frame after playback."),
+          selectField("keep-open-pause", "Pause at end", [
+            opt("no", "no"),
+            opt("yes", "yes")
+          ], "no", "Pause instead of closing when keep-open is set.")
+        ]
+      },
+      {
+        id: "cache",
+        title: "Caching & IO",
+        fields: [
+          selectField("cache", "Adaptive cache", [
+            opt("auto", "auto"),
+            opt("yes", "force on"),
+            opt("no", "disable")
+          ], "auto", "Memory/disk cache for streaming."),
+          inputField("cache-secs", "Cache duration (sec)", "120", "How much to cache ahead.", "120", "number"),
+          inputField("demuxer-max-bytes", "Demuxer max bytes", "250MiB", "Max buffered bytes before backpressure.", "e.g. 250MiB"),
+          inputField("demuxer-readahead-secs", "Demuxer readahead (sec)", "60", "Read-ahead time target.", "60", "number"),
+          selectField("cache-pause", "Pause while filling cache", [
+            opt("yes", "yes"),
+            opt("no", "no")
+          ], "yes", "Wait for buffer to refill."),
+          selectField("force-seekable", "Force seekable", [
+            opt("yes", "yes"),
+            opt("no", "no")
+          ], "yes", "Treat streams as seekable if possible.")
+        ]
+      },
+      {
+        id: "network",
+        title: "Network & ytdl",
+        fields: [
+          inputField("user-agent", "User-Agent", "", "Override HTTP user agent.", "e.g. Mozilla/5.0"),
+          inputField("referrer", "Referrer", "", "Send a referrer header.", "URL"),
+          inputField("ytdl-format", "ytdl-format", "bestvideo+bestaudio/best", "Format selection for yt-dlp backend.", "bestvideo+bestaudio/best"),
+          inputField("ytdl-raw-options", "ytdl-raw-options", "", "Pass raw yt-dlp options (k1=v1&k2=v2).", "cookies-from-browser=chrome")
+        ]
+      },
+      {
+        id: "screens",
+        title: "Screenshots",
+        fields: [
+          selectField("screenshot-format", "Screenshot format", [
+            opt("png", "png"),
+            opt("jpg", "jpg"),
+            opt("webp", "webp")
+          ], "png", "Screenshot file format."),
+          inputField("screenshot-directory", "Screenshot directory", "", "Where to save; empty uses CWD.", "~/Pictures/mpv"),
+          inputField("screenshot-template", "Screenshot template", "mpv-shot-%F-%n", "Filename template. %F=file, %n=counter.", "mpv-shot-%F-%n"),
+          inputField("screenshot-jpeg-quality", "JPEG/WebP quality", "92", "If jpg/webp is used (0-100).", "92", "number")
+        ]
+      }
+    ];
+
+    const saneDefaults = {
+      profile: "gpu-hq",
+      hwdec: "auto-safe",
+      interpolation: "no",
+      "video-sync": "audio",
+      vo: "gpu-next",
+      "gpu-api": "auto",
+      scale: "ewa_lanczossharp",
+      dscale: "mitchell",
+      "sigmoid-upscaling": "yes",
+      deband: "auto",
+      "tone-mapping": "auto",
+      "target-peak": "",
+      "audio-device": "auto",
+      volume: "100",
+      "volume-max": "130",
+      "audio-channels": "auto",
+      "audio-file-auto": "fuzzy",
+      af: "",
+      "audio-delay": "0",
+      "sub-auto": "fuzzy",
+      "sub-font-size": "36",
+      "sub-margin": "10",
+      "sub-color": "#ffffff",
+      "sub-border-color": "#101010",
+      "sub-shadow-offset": "1",
+      "sub-bold": "no",
+      osc: "yes",
+      "osd-level": "2",
+      "osd-font-size": "36",
+      "osd-duration": "1200",
+      "term-osd-bar": "no",
+      "cursor-autohide": "1000",
+      "save-position-on-quit": "yes",
+      "loop-file": "no",
+      autofit: "",
+      "autofit-larger": "",
+      fs: "no",
+      "keep-open": "no",
+      "keep-open-pause": "no",
+      cache: "auto",
+      "cache-secs": "120",
+      "demuxer-max-bytes": "250MiB",
+      "demuxer-readahead-secs": "60",
+      "cache-pause": "yes",
+      "force-seekable": "yes",
+      "user-agent": "",
+      referrer: "",
+      "ytdl-format": "bestvideo+bestaudio/best",
+      "ytdl-raw-options": "",
+      "screenshot-format": "png",
+      "screenshot-directory": "",
+      "screenshot-template": "mpv-shot-%F-%n",
+      "screenshot-jpeg-quality": "92"
+    };
+
+    const vanillaDefaults = {
+      profile: "default",
+      hwdec: "no",
+      interpolation: "no",
+      "video-sync": "audio",
+      vo: "auto",
+      "gpu-api": "auto",
+      scale: "bilinear",
+      dscale: "lanczos",
+      "sigmoid-upscaling": "no",
+      deband: "no",
+      "tone-mapping": "",
+      "target-peak": "",
+      "audio-device": "auto",
+      volume: "100",
+      "volume-max": "130",
+      "audio-channels": "auto",
+      "audio-file-auto": "exact",
+      af: "",
+      "audio-delay": "0",
+      "sub-auto": "exact",
+      "sub-font-size": "32",
+      "sub-margin": "0",
+      "sub-color": "#ffffff",
+      "sub-border-color": "#000000",
+      "sub-shadow-offset": "1",
+      "sub-bold": "no",
+      osc: "yes",
+      "osd-level": "1",
+      "osd-font-size": "36",
+      "osd-duration": "1200",
+      "term-osd-bar": "no",
+      "cursor-autohide": "1000",
+      "save-position-on-quit": "no",
+      "loop-file": "no",
+      autofit: "",
+      "autofit-larger": "",
+      fs: "no",
+      "keep-open": "no",
+      "keep-open-pause": "no",
+      cache: "auto",
+      "cache-secs": "120",
+      "demuxer-max-bytes": "",
+      "demuxer-readahead-secs": "",
+      "cache-pause": "yes",
+      "force-seekable": "no",
+      "user-agent": "",
+      referrer: "",
+      "ytdl-format": "bestvideo+bestaudio/best",
+      "ytdl-raw-options": "",
+      "screenshot-format": "png",
+      "screenshot-directory": "",
+      "screenshot-template": "screenshot%#02n",
+      "screenshot-jpeg-quality": "90"
+    };
+
+    const state = { ...saneDefaults, custom: [] };
+
+    function opt(value, label) { return { value, label }; }
+    function selectField(key, label, options, value, description) {
+      return { key, label, type: "select", options, value, description };
+    }
+    function inputField(key, label, value, description, placeholder = "", inputType = "text") {
+      return { key, label, type: "input", value, description, placeholder, inputType };
+    }
+
+    function renderSections() {
+      const container = document.getElementById("sections");
+      container.innerHTML = "";
+      optionSections.forEach(section => {
+        const column = document.createElement("div");
+        column.className = "card";
+        const header = document.createElement("div");
+        header.className = "inline";
+        const h2 = document.createElement("h2");
+        h2.textContent = section.title;
+        header.appendChild(h2);
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = section.id;
+        header.appendChild(badge);
+        column.appendChild(header);
+        const grid = document.createElement("div");
+        grid.className = "stack";
+        section.fields.forEach(field => {
+          const fieldEl = document.createElement("div");
+          fieldEl.className = "field";
+          const label = document.createElement("label");
+          label.htmlFor = field.key;
+          label.textContent = field.label;
+          fieldEl.appendChild(label);
+          let control;
+          if (field.type === "select") {
+            const select = document.createElement("select");
+            select.id = field.key;
+            select.name = field.key;
+            field.options.forEach(optItem => {
+              const o = document.createElement("option");
+              o.value = optItem.value;
+              o.textContent = optItem.label;
+              select.appendChild(o);
+            });
+            select.value = state[field.key] ?? field.value ?? "";
+            select.addEventListener("change", () => {
+              state[field.key] = select.value;
+              updateOutput();
+            });
+            control = select;
+          } else {
+            const input = document.createElement("input");
+            input.type = field.inputType || "text";
+            input.placeholder = field.placeholder || "";
+            input.id = field.key;
+            input.name = field.key;
+            input.value = state[field.key] ?? field.value ?? "";
+            input.addEventListener("input", () => {
+              state[field.key] = input.value;
+              updateOutput();
+            });
+            control = input;
+          }
+          fieldEl.appendChild(control);
+          if (field.description) {
+            const p = document.createElement("div");
+            p.className = "subtext";
+            p.textContent = field.description;
+            fieldEl.appendChild(p);
+          }
+          grid.appendChild(fieldEl);
+        });
+        column.appendChild(grid);
+        container.appendChild(column);
+      });
+    }
+
+    function renderCustomRows() {
+      const wrap = document.getElementById("custom-rows");
+      wrap.innerHTML = "";
+      state.custom.forEach((row, idx) => {
+        const line = document.createElement("div");
+        line.className = "custom-kv";
+        const keyInput = document.createElement("input");
+        keyInput.type = "text";
+        keyInput.placeholder = "option (e.g. cache=yes)";
+        keyInput.value = row;
+        keyInput.addEventListener("input", () => {
+          state.custom[idx] = keyInput.value;
+          updateOutput();
+        });
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "ghost";
+        deleteBtn.textContent = "Remove";
+        deleteBtn.onclick = () => {
+          state.custom.splice(idx, 1);
+          renderCustomRows();
+          updateOutput();
+        };
+        line.appendChild(keyInput);
+        const filler = document.createElement("div");
+        filler.className = "subtext";
+        filler.textContent = "Any valid mpv option line";
+        line.appendChild(filler);
+        line.appendChild(deleteBtn);
+        wrap.appendChild(line);
+      });
+      if (state.custom.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "subtext";
+        empty.textContent = "Nothing extra yet. Add cache, scripts, profiles…";
+        wrap.appendChild(empty);
+      }
+    }
+
+    function addCustomRow() {
+      state.custom.push("");
+      renderCustomRows();
+      updateOutput();
+    }
+
+    function resetCustom() {
+      state.custom = [];
+      renderCustomRows();
+      updateOutput();
+    }
+
+    function loadSaneDefaults() {
+      Object.assign(state, { ...saneDefaults });
+      applyStateToInputs();
+      updateOutput();
+    }
+
+    function loadVanilla() {
+      Object.assign(state, { ...vanillaDefaults });
+      applyStateToInputs();
+      updateOutput();
+    }
+
+    function applyStateToInputs() {
+      optionSections.forEach(section => {
+        section.fields.forEach(field => {
+          const el = document.getElementById(field.key);
+          if (el) el.value = state[field.key];
+        });
+      });
+    }
+
+    function generateConfig() {
+      const lines = [];
+      lines.push("# mpv.conf generated by MPV Config Studio");
+      lines.push("# docs: https://mpv.io/manual/stable/");
+      lines.push("");
+      lines.push("# Playback & sync");
+      pushIfSet(lines, "profile", state.profile);
+      pushIfSet(lines, "hwdec", state.hwdec);
+      if (state.interpolation === "tscale=oversample") {
+        pushIfSet(lines, "interpolation", "yes");
+        lines.push("tscale=oversample");
+      } else {
+        pushIfSet(lines, "interpolation", state.interpolation);
+      }
+      pushIfSet(lines, "video-sync", state["video-sync"]);
+      lines.push("");
+      lines.push("# Video");
+      pushIfSet(lines, "vo", state.vo);
+      pushIfSet(lines, "gpu-api", state["gpu-api"]);
+      pushIfSet(lines, "scale", state.scale);
+      pushIfSet(lines, "dscale", state.dscale);
+      pushIfSet(lines, "sigmoid-upscaling", state["sigmoid-upscaling"]);
+      pushIfSet(lines, "deband", state.deband);
+      pushIfSet(lines, "tone-mapping", state["tone-mapping"]);
+      pushIfSet(lines, "target-peak", state["target-peak"]);
+      lines.push("");
+      lines.push("# Audio");
+      pushIfSet(lines, "audio-device", state["audio-device"]);
+      pushIfSet(lines, "volume", state.volume);
+      pushIfSet(lines, "volume-max", state["volume-max"]);
+      pushIfSet(lines, "audio-channels", state["audio-channels"]);
+      pushIfSet(lines, "audio-file-auto", state["audio-file-auto"]);
+      if (state.af) pushIfSet(lines, "af", state.af);
+      pushIfSet(lines, "audio-delay", state["audio-delay"]);
+      lines.push("");
+      lines.push("# Subtitles");
+      pushIfSet(lines, "sub-auto", state["sub-auto"]);
+      pushIfSet(lines, "sub-font-size", state["sub-font-size"]);
+      pushIfSet(lines, "sub-margin", state["sub-margin"]);
+      pushIfSet(lines, "sub-color", state["sub-color"]);
+      pushIfSet(lines, "sub-border-color", state["sub-border-color"]);
+      pushIfSet(lines, "sub-shadow-offset", state["sub-shadow-offset"]);
+      pushIfSet(lines, "sub-bold", state["sub-bold"]);
+      lines.push("");
+      lines.push("# UI & OSD");
+      pushIfSet(lines, "osc", state["osc"]);
+      pushIfSet(lines, "osd-level", state["osd-level"]);
+      pushIfSet(lines, "osd-font-size", state["osd-font-size"]);
+      pushIfSet(lines, "osd-duration", state["osd-duration"]);
+      pushIfSet(lines, "term-osd-bar", state["term-osd-bar"]);
+      pushIfSet(lines, "cursor-autohide", state["cursor-autohide"]);
+      lines.push("");
+      lines.push("# Behavior");
+      pushIfSet(lines, "save-position-on-quit", state["save-position-on-quit"]);
+      pushIfSet(lines, "loop-file", state["loop-file"]);
+      lines.push("");
+      lines.push("# Window & sizing");
+      pushIfSet(lines, "autofit", state["autofit"]);
+      pushIfSet(lines, "autofit-larger", state["autofit-larger"]);
+      pushIfSet(lines, "fs", state["fs"]);
+      pushIfSet(lines, "keep-open", state["keep-open"]);
+      pushIfSet(lines, "keep-open-pause", state["keep-open-pause"]);
+      lines.push("");
+      lines.push("# Caching & IO");
+      pushIfSet(lines, "cache", state["cache"]);
+      pushIfSet(lines, "cache-secs", state["cache-secs"]);
+      pushIfSet(lines, "demuxer-max-bytes", state["demuxer-max-bytes"]);
+      pushIfSet(lines, "demuxer-readahead-secs", state["demuxer-readahead-secs"]);
+      pushIfSet(lines, "cache-pause", state["cache-pause"]);
+      pushIfSet(lines, "force-seekable", state["force-seekable"]);
+      lines.push("");
+      lines.push("# Network & ytdl");
+      pushIfSet(lines, "user-agent", state["user-agent"]);
+      pushIfSet(lines, "referrer", state.referrer);
+      pushIfSet(lines, "ytdl-format", state["ytdl-format"]);
+      pushIfSet(lines, "ytdl-raw-options", state["ytdl-raw-options"]);
+      lines.push("");
+      lines.push("# Screenshots");
+      pushIfSet(lines, "screenshot-format", state["screenshot-format"]);
+      pushIfSet(lines, "screenshot-directory", state["screenshot-directory"]);
+      pushIfSet(lines, "screenshot-template", state["screenshot-template"]);
+      pushIfSet(lines, "screenshot-jpeg-quality", state["screenshot-jpeg-quality"]);
+      lines.push("");
+      if (state.custom.length) {
+        lines.push("# Custom entries");
+        state.custom.filter(Boolean).forEach(line => lines.push(line));
+      }
+      return lines.join("\n").trim() + "\n";
+    }
+
+    function pushIfSet(arr, key, value) {
+      if (value !== undefined && value !== null && value !== "") {
+        arr.push(`${key}=${value}`);
+      }
+    }
+
+    function updateOutput() {
+      const output = document.getElementById("output");
+      output.value = generateConfig();
+    }
+
+    async function copyConfig() {
+      const text = document.getElementById("output").value;
+      try {
+        await navigator.clipboard.writeText(text);
+        flash("Copied config to clipboard");
+      } catch (err) {
+        flash("Clipboard not available; select & copy manually");
+      }
+    }
+
+    function downloadConfig() {
+      const blob = new Blob([document.getElementById("output").value], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mpv.conf";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function flash(msg) {
+      const tag = document.createElement("div");
+      tag.textContent = msg;
+      tag.className = "chip";
+      tag.style.position = "fixed";
+      tag.style.bottom = "18px";
+      tag.style.right = "18px";
+      tag.style.background = "rgba(18, 157, 133, 0.95)";
+      tag.style.color = "#051015";
+      tag.style.boxShadow = "0 14px 40px rgba(0,0,0,0.35)";
+      document.body.appendChild(tag);
+      setTimeout(() => tag.remove(), 2200);
+    }
+
+    function init() {
+      renderSections();
+      renderCustomRows();
+      applyStateToInputs();
+      updateOutput();
+    }
+
+    init();
+  </script>
+</body>
+</html>
